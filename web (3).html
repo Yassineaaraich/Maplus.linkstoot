@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>تحقق أنك لست روبوت — مثال</title>
+<style>
+  :root{
+    --bg:#f3f6fb;
+    --card:#ffffff;
+    --accent:#0b74de;
+    --muted:#6b7280;
+  }
+  html,body{height:500px;margin:0;font-family:Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--bg); color:#111}
+  /* المحتوى العام */
+  .site {
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:3rem 1rem;
+    box-sizing:border-box;
+  }
+  .container{max-width:900px;width:100%}
+  header{margin-bottom:1.25rem}
+  h1{margin:0 0 .25rem;font-size:1.25rem}
+  p.lead{margin:.25rem 0 1rem;color:var(--muted)}
+
+  /* الـ modal overlay */
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(8,15,30,0.55);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    padding:1rem;
+    backdrop-filter: blur(4px);
+  }
+  .card{
+    width:320px;
+    max-width:400px;
+    background:var(--card);
+    border-radius:12px;
+    padding:1.25rem;
+    box-shadow:0 10px 30px rgba(10,20,40,.25);
+    text-align:center;
+    margin-top: 150px;
+  }
+  .card .title{font-weight:700;margin-bottom:.35rem}
+  .card .desc{color:var(--muted);font-size:.95rem;margin-bottom:1rem}
+
+  /* faux-checkbox */
+  .check-wrap{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:.75rem;
+    margin:0 auto 1rem;
+    width:fit-content;
+  }
+  .fake-checkbox{
+    width:48px;height:32px;border-radius:8px;background:#f1f5f9;border:1px solid #e6eef9;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    user-select:none;box-shadow:inset 0 -6px 12px rgba(0,0,0,.03);
+  }
+  .fake-checkbox.checked{background:linear-gradient(180deg,var(--accent),#055ea8);color:white;border-color:transparent}
+  .chk-label{font-weight:600}
+
+  /* زر التحقق */
+  .verify-btn{
+    display:inline-block;padding:.7rem 1.1rem;border-radius:10px;background:linear-gradient(180deg,var(--accent),#055ea8);color:#fff;text-decoration:none;font-weight:700;border:none;cursor:pointer;
+    box-shadow:0 6px 18px rgba(11,116,222,.18);
+  }
+  .verify-btn[disabled]{opacity:.6;cursor:not-allowed;box-shadow:none}
+
+  /* progress */
+  .progress {
+    height:8px;border-radius:999px;background:#eef5ff;margin-top:1rem;overflow:hidden;
+    width:100%;
+  }
+  .progress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#55a6ff);transition:width .4s ease}
+
+  /* small hint */
+  .hint{margin-top:.9rem;color:var(--muted);font-size:.86rem}
+
+  /* example content that is hidden under the overlay until verified */
+  .content-card{background:white;padding:1rem;border-radius:10px;box-shadow:0 6px 18px rgba(10,20,40,.06)}
+  footer{margin-top:1rem;color:var(--muted);font-size:.9rem;text-align:center}
+
+  /* responsive tweaks */
+  @media (max-width:420px){
+    .card{padding:1rem}
+  }
+</style>
+</head>
+<body>
+
+<!-- Modal overlay -->
+<div id="verifyOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="verifyTitle">
+  <div class="card" role="document">
+    <div class="title" id="verifyTitle">التحقق من أنك لست روبوت</div>
+    
+
+    <div class="check-wrap" aria-hidden="false">
+      <div id="fakeCheck" class="fake-checkbox" tabindex="0" role="button" aria-pressed="false" aria-label="المربع أنا لست روبوت">
+        <!-- أيقونة ✓ تظهر عندما تكون محددة -->
+        <span id="checkIcon" style="font-weight:700;display:none;">✓</span>
+      </div>
+      <div class="chk-label">أنا لست روبوت</div>
+    </div>
+
+    <button id="verifyBtn" class="verify-btn" disabled>تحقق الآن</button>
+
+    <div class="progress" aria-hidden="true" style="display:none;margin-top:1rem;">
+      <i id="progressBar"></i>
+    </div>
+
+    <div class="hint">لن يتم مشاركة بياناتك هنا.</div>
+  </div>
+</div>
+
+<!-- الصفحة الفعلية (تظهر بعد التحقق) -->
+
+  <div class="card">
+    <h1>تم تحقق من انك لست روبوت</h1>
+    <p>بعد تتحقق من انك لست روبو ت المرجو تفعيل زر الاكمال</p>
+
+    <!-- زر من نوع div كما طلبت -->
+<div onclick="Android.openCimPage()" 
+     style="padding:15px;background:#2196f3;color:white;border-radius:10px;width:150px;text-align:center;">
+   الاكمال
+</div>
+
+  </div>
+
+<script>
+(function(){
+  const overlay = document.getElementById('verifyOverlay');
+  const fakeCheck = document.getElementById('fakeCheck');
+  const checkIcon = document.getElementById('checkIcon');
+  const verifyBtn = document.getElementById('verifyBtn');
+  const progressWrap = document.querySelector('.progress');
+  const progressBar = document.getElementById('progressBar');
+
+  const STORAGE_KEY = 'human_verified_until';
+
+  // إذا كان المستخدم قد تحقق مسبقًا ولم تنته صلاحية التخزين — لا نظهر overlay
+  function alreadyVerified(){
+    try {
+      const v = localStorage.getItem(STORAGE_KEY);
+      if(!v) return false;
+      const ts = Number(v);
+      return Date.now() < ts;
+    } catch(e){ return false; }
+  }
+
+  if(alreadyVerified()){
+    overlay.style.display = 'none';
+    return;
+  }
+
+  // تفعيل/تعطيل الحالة عند الضغط على المربع (دعم клавиатура)
+  let checked = false;
+  function setChecked(val){
+    checked = !!val;
+    fakeCheck.classList.toggle('checked', checked);
+    checkIcon.style.display = checked ? 'inline' : 'none';
+    fakeCheck.setAttribute('aria-pressed', checked ? 'true' : 'false');
+    verifyBtn.disabled = !checked;
+  }
+
+  fakeCheck.addEventListener('click', ()=> setChecked(!checked));
+  fakeCheck.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChecked(!checked); }
+  });
+
+  // منطق الزر: نعرض شريط تقدم قصيرًا لمحاكاة "التحقق" ثم نغلق الـ modal
+  verifyBtn.addEventListener('click', async ()=>{
+    if(verifyBtn.disabled) return;
+    verifyBtn.disabled = true;
+    // عرض progress
+    progressWrap.style.display = 'block';
+    progressBar.style.width = '0%';
+
+    // محاكاة خطوات تحقق متعددة لتجربة مستخدم جيدة
+    const steps = [30, 65, 100]; // نسب تقريبية
+    for(let i=0;i<steps.length;i++){
+      await new Promise(res => setTimeout(res, 450 + Math.random()*300));
+      progressBar.style.width = steps[i] + '%';
+    }
+
+    // بعد اكتمال "التحقق" — احفظ حالة المستخدم (24 ساعة)
+    try {
+      const expires = Date.now() + 24*60*60*1000; // 24 ساعة
+      localStorage.setItem(STORAGE_KEY, String(expires));
+    } catch(e){
+      console.warn('localStorage not available', e);
+    }
+
+    // إخفاء overlay وإزالة من DOM حتى يصبح المحتوى قابلاً للتفاعل
+    overlay.style.display = 'none';
+    overlay.setAttribute('aria-hidden', 'true');
+  });
+
+  // إمكانية إغلاق مباشرة عبر مفتاح ESC (اختياري — نُبقيه معطلًا للتجربة المشابهة للمواقع الحقيقية)
+  // document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') { /* لا نفعل شيء */ } });
+
+  // للعرض: اضغط Ctrl+Shift+V لتمكين/تعطيل التحقق (فقط أثناء التطوير)
+  // document.addEventListener('keydown', (e)=>{ if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='v'){ overlay.style.display = overlay.style.display==='none' ? 'flex' : 'none'; } });
+
+})();
+</script>
+
+</body>
+</html>
